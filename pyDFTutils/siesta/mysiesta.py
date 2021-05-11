@@ -1,4 +1,6 @@
 import os
+import math
+import numpy as np
 from ase.calculators.siesta import Siesta
 from ase.calculators.calculator import FileIOCalculator, ReadError
 from ase.calculators.siesta.parameters import format_fdf
@@ -19,6 +21,17 @@ def get_species(atoms, xc, rel='sr'):
     ]
     return pseudo_path, species
 
+
+def cart2sph(vec):
+    x, y, z = vec
+    r = np.linalg.norm(vec)               # r
+    if r< 1e-10:
+        theta,phi=0.0,0.0
+    else:
+        # note that there are many conventions, here is the ISO convention.
+        phi = math.atan2(y,x) *180/math.pi                          # phi
+        theta = math.acos(z/r) *180/math.pi                        # theta
+    return r, theta, phi
 
 class MySiesta(Siesta):
     def __init__(self,
@@ -157,3 +170,29 @@ class MySiesta(Siesta):
             'MD.NumCGSteps': 0,
         })
         return self.atoms
+
+    def read_results(self):
+        """Read the results.
+        """
+        self.read_number_of_grid_points()
+        self.read_energy()
+        self.read_forces_stress()
+        #self.read_eigenvalues()
+        self.read_kpoints()
+        self.read_dipole()
+        self.read_pseudo_density()
+        #self.read_hsx()
+        self.read_dim()
+        #if self.results['hsx'] is not None:
+        #    self.read_pld(self.results['hsx'].norbitals,
+        #                  len(self.atoms))
+        #    self.atoms.cell = self.results['pld'].cell * Bohr
+        #else:
+        #    self.results['pld'] = None
+
+        #self.read_wfsx()
+        self.read_ion(self.atoms)
+
+        self.read_bands()
+
+
